@@ -22,52 +22,51 @@ const options = {
   },
 };
 
-const __sha256ToHex = async (str) => {
+const sha256ToHex = (str) => {
   return crypto.createHash("sha256").update(str).digest("hex");
 };
 
-const _getAuthResponse = async (authParams, pass = null) => {
-  let _respAuthParams = { ...authParams };
+const getAuthResponse = (authParams, pass) => {
+  let respAuthParams = { ...authParams };
 
-  _respAuthParams.username = username;
-  _respAuthParams.nonce = parseInt(_respAuthParams.nonce, 16);
-  _respAuthParams.cnonce = Math.floor(Math.random() * Math.pow(10, 8));
+  respAuthParams.username = username;
+  respAuthParams.nonce = parseInt(respAuthParams.nonce, 16);
+  respAuthParams.cnonce = Math.floor(Math.random() * Math.pow(10, 8));
 
-  let _respArray = [];
-  _respArray.push(
-    await __sha256ToHex([username, _respAuthParams.realm, pass].join(":"))
+  let respArray = [];
+  respArray.push(
+    sha256ToHex([username, respAuthParams.realm, pass].join(":"))
   );
-  _respArray.push(_respAuthParams.nonce.toString());
-  _respArray.push("1");
-  _respArray.push(_respAuthParams.cnonce.toString());
-  _respArray.push("auth");
-  _respArray.push(await __sha256ToHex("dummy_method:dummy_uri"));
-  _respAuthParams.response = await __sha256ToHex(_respArray.join(":"));
-  return _respAuthParams;
+  respArray.push(respAuthParams.nonce.toString());
+  respArray.push("1");
+  respArray.push(respAuthParams.cnonce.toString());
+  respArray.push("auth");
+  respArray.push(sha256ToHex("dummy_method:dummy_uri"));
+  respAuthParams.response = sha256ToHex(respArray.join(":"));
+  return respAuthParams;
 };
 
-const shellyHttpCall = async (options, postdata) => {
+const shellyHttpCall = (options, postdata) => {
   return new Promise((resolve, reject) => {
     options.headers["Content-Length"] = Buffer.byteLength(
       JSON.stringify(postdata)
     );
-    const req = http.request(options, async (res) => {
+    const req = http.request(options, (res) => {
       let buffer = new Buffer.alloc(0);
       if (res.statusCode == 401) {
-        let _challengeAuthParams = {};
-        let _auth_header_params = res.headers["www-authenticate"]
+        let authHeaderParams = res.headers["www-authenticate"]
           .replace(/\"/g, "")
           .split(", ");
-        for (_param of _auth_header_params) {
-          let [_key, _value] = _param.split("=");
-          _challengeAuthParams[_key] = _value;
+        let challengeAuth = {};
+        for (param of authHeaderParams) {
+          let [_key, _value] = param.split("=");
+          challengeAuth[_key] = _value;
         }
-        let _authParams = await _getAuthResponse(
-          _challengeAuthParams,
-          password
-        );
         return resolve(
-          shellyHttpCall(options, { ...postdata, auth: _authParams })
+          shellyHttpCall(options, {
+            ...postdata,
+            auth: getAuthResponse(challengeAuth, password),
+          })
         );
       }
       res.on("data", (chunk) => {
@@ -84,7 +83,8 @@ const shellyHttpCall = async (options, postdata) => {
 
 shellyHttpCall(options, postData)
   .then((data) => {
-    console.log("Device response: ", data);
+    console.log("Device response: ");
+    console.log(JSON.stringify(JSON.parse(data), null, 2));
   })
   .catch((err) => {
     console.log("Request failed");
