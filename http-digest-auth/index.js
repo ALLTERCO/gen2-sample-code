@@ -1,3 +1,12 @@
+/**
+ * Sample HTTP request implementation of client communication
+ * with Gen2 Shelly device with or without authorization enabled
+ * https://datatracker.ietf.org/doc/html/rfc7616
+ * 
+ * Some assumptions:
+ *   Algorithm is SHA-256 (as of time of writing this is the case) 
+ */
+
 const http = require("http");
 const crypto = require("crypto");
 const dotenv = require("dotenv");
@@ -42,17 +51,17 @@ const getAuthResponse = (authParams, pass) => {
   respArray.push(respAuthParams.cnonce.toString());
   respArray.push("auth");
   respArray.push(sha256ToHex("dummy_method:dummy_uri"));
+
   respAuthParams.response = sha256ToHex(respArray.join(":"));
+ 
   return respAuthParams;
 };
 
 const shellyHttpCall = (options, postdata) => {
   return new Promise((resolve, reject) => {
-    options.headers["Content-Length"] = Buffer.byteLength(
-      JSON.stringify(postdata)
-    );
     const req = http.request(options, (res) => {
       let buffer = new Buffer.alloc(0);
+      // Not authenticated, so look up the challenge header
       if (res.statusCode == 401) {
         let authHeaderParams = res.headers["www-authenticate"]
           .replace(/\"/g, "")
@@ -62,6 +71,7 @@ const shellyHttpCall = (options, postdata) => {
           let [_key, _value] = param.split("=");
           challengeAuth[_key] = _value;
         }
+        // Retry with challenge response object 
         return resolve(
           shellyHttpCall(options, {
             ...postdata,
