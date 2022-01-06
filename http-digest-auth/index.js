@@ -116,4 +116,5 @@ shellyHttpCall(options, postData)
   })
   .catch((err) => {
     console.error("Request failed :", err);
+    proces.exit(-1);
   });
