@@ -32,57 +32,61 @@ const options = {
   timeout: 500
 };
 
-const sha256ToHex = (str) => {
+function sha256ToHex(str) {
   return crypto.createHash("sha256").update(str).digest("hex");
 };
 
-const getAuthResponse = (authParams, pass) => {
-  let respAuthParams = { ...authParams };
+const static_noise = sha256ToHex("dummy_method:dummy_uri");
 
-  respAuthParams.username = username;
-  respAuthParams.nonce = parseInt(respAuthParams.nonce, 16);
-  respAuthParams.cnonce = Math.floor(Math.random() * Math.pow(10, 8));
+function complementAuthParams(authParams, username, pass) {
 
-  let respArray = [];
-  respArray.push(sha256ToHex([username, respAuthParams.realm, pass].join(":")));
-  respArray.push(respAuthParams.nonce.toString());
-  respArray.push("1");
-  respArray.push(respAuthParams.cnonce.toString());
-  respArray.push("auth");
-  respArray.push(sha256ToHex("dummy_method:dummy_uri"));
+  authParams.username = username;
+  authParams.nonce = parseInt(authParams.nonce, 16);
+  authParams.cnonce = Math.floor(Math.random() * 10e8);
 
-  respAuthParams.response = sha256ToHex(respArray.join(":"));
+  let resp = '';
+  resp += sha256ToHex(username + ":" + authParams.realm + ":" + pass);
+  resp += ":" + authParams.nonce;
+  resp += ":1";
+  resp += ":" + authParams.cnonce;
+  resp += ":auth";
+  resp += ":" + static_noise;
 
-  return respAuthParams;
+  authParams.response = sha256ToHex(resp);
+
 };
 
-const shellyHttpCall = async (options, postdata) => {
+const match_dquote_re = /\"/g;
+
+function shellyHttpCall(options, postdata) {
   return new Promise((resolve, reject) => {
-    const req = http.request(options, (response) => {
+    const req = http.request(options, async (response) => {
       let buffer = new Buffer.alloc(0);
       // Not authenticated, so look up the challenge header
       if (response.statusCode == 401) {
+        console.error("calculating digest auth...");
         let authHeaderParams = response.headers["www-authenticate"]
-          .replace(/\"/g, "")
+          .replace(match_dquote_re, "")
           .split(", ");
-        let challengeAuth = {};
+        let authParams = {};
         for (param of authHeaderParams) {
           let [_key, _value] = param.split("=");
-          challengeAuth[_key] = _value;
+          authParams[_key.trim()] = _value.trim();
         }
         // Retry with challenge response object
-        return resolve(
-          shellyHttpCall(options, {
-            ...postdata,
-            auth: getAuthResponse(challengeAuth, password),
-          })
-        );
+        complementAuthParams(authParams, username, password);
+        postdata.auth = authParams;
+        try {
+          return resolve(await shellyHttpCall(options, postdata));
+        } catch (e) {
+          return reject(e);
+        }
       }
       response.on("error", (error) => {
         reject(error);
       });
       response.on("timeout", () => {
-        reject();
+        reject(new Error("Timeout"));
       });
       response.on("data", (chunk) => {
         buffer = Buffer.concat([buffer, chunk]);
@@ -94,21 +98,23 @@ const shellyHttpCall = async (options, postdata) => {
 
     req.on("timeout", () => {
       req.destroy();
-      reject("Timeout");
+      reject(new Error("Timeout"));
     });
-    req.on("error",(error)=>{
-      reject("Request error");
+    req.on("error", (error) => {
+      reject(new Error("Request error"));
     })
     req.write(JSON.stringify(postdata));
     req.end();
   });
 };
 
+console.error("Calling metod " + postData.method + " on " + options.hostname);
 shellyHttpCall(options, postData)
   .then((data) => {
-    console.log("Device response: ");
+    console.error("Device response: ");
     console.log(JSON.stringify(JSON.parse(data), null, 2));
   })
   .catch((err) => {
-    console.log("Request failed :", err);
+    console.error("Request failed :", err);
+    proces.exit(-1);
   });
