@@ -32,33 +32,33 @@ const options = {
   timeout: 500
 };
 
-function sha256ToHex (str) {
+function sha256ToHex(str) {
   return crypto.createHash("sha256").update(str).digest("hex");
 };
 
-const static_noise=sha256ToHex("dummy_method:dummy_uri");
+const static_noise = sha256ToHex("dummy_method:dummy_uri");
 
-function complementAuthParams (authParams,username,pass) {
+function complementAuthParams(authParams, username, pass) {
 
   authParams.username = username;
   authParams.nonce = parseInt(authParams.nonce, 16);
   authParams.cnonce = Math.floor(Math.random() * 10e8);
 
   let resp = '';
-  resp+=sha256ToHex(username+":"+authParams.realm+":"+pass);
-  resp+=":"+authParams.nonce;
-  resp+=":1";
-  resp+=":"+authParams.cnonce;
-  resp+=":auth";
-  resp+=":"+static_noise;
+  resp += sha256ToHex(username + ":" + authParams.realm + ":" + pass);
+  resp += ":" + authParams.nonce;
+  resp += ":1";
+  resp += ":" + authParams.cnonce;
+  resp += ":auth";
+  resp += ":" + static_noise;
 
   authParams.response = sha256ToHex(resp);
 
 };
 
-const match_dquote_re=/\"/g;
+const match_dquote_re = /\"/g;
 
-function shellyHttpCall (options, postdata) {
+function shellyHttpCall(options, postdata) {
   return new Promise((resolve, reject) => {
     const req = http.request(options, async (response) => {
       let buffer = new Buffer.alloc(0);
@@ -75,7 +75,7 @@ function shellyHttpCall (options, postdata) {
         }
         // Retry with challenge response object
         complementAuthParams(authParams, username, password);
-        postdata.auth=authParams;
+        postdata.auth = authParams;
         try {
           return resolve(await shellyHttpCall(options, postdata));
         } catch (e) {
@@ -100,7 +100,7 @@ function shellyHttpCall (options, postdata) {
       req.destroy();
       reject(new Error("Timeout"));
     });
-    req.on("error",(error)=>{
+    req.on("error", (error) => {
       reject(new Error("Request error"));
     })
     req.write(JSON.stringify(postdata));
@@ -108,7 +108,7 @@ function shellyHttpCall (options, postdata) {
   });
 };
 
-console.error("Calling metod "+postData.method+" on "+options.hostname);
+console.error("Calling metod " + postData.method + " on " + options.hostname);
 shellyHttpCall(options, postData)
   .then((data) => {
     console.error("Device response: ");
