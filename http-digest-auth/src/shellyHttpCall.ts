@@ -74,7 +74,7 @@ export function extractAuthParams(authHeader: string): authParams_t {
   let [authType, ...auth_parts] = authHeader.trim().split(match_coma_space_re);
 
   if (authType.toLocaleLowerCase() != 'digest') {
-    throw new Error("WWW-Authenticate heder is requesting unusial auth type " + authType + "instead of Digest");
+    throw new Error("WWW-Authenticate header is requesting unusial auth type " + authType + "instead of Digest");
   }
 
   let authParams: Record<string, string> = {};
@@ -83,12 +83,12 @@ export function extractAuthParams(authHeader: string): authParams_t {
     _value = _value.replace(match_dquote_re, '');
 
     if (_key == 'algorithm' && _value != 'SHA-256') {
-      throw new Error("WWW-Authenticate heder is requesting unusial algorithm:" + _value + " instead of SHA-256");
+      throw new Error("WWW-Authenticate header is requesting unusial algorithm:" + _value + " instead of SHA-256");
     }
 
     if (_key == 'qop') {
       if (_value != 'auth') {
-        throw new Error("WWW-Authenticate heder is requesting unusial qop:" + _value + " instead of auth");
+        throw new Error("WWW-Authenticate header is requesting unusial qop:" + _value + " instead of auth");
       }
       continue;
     }
@@ -96,12 +96,12 @@ export function extractAuthParams(authHeader: string): authParams_t {
     authParams[_key.trim()] = _value.trim();
   }
   if (!isauthParams(authParams)) {
-    throw new Error("invalid WWW-Authenticate heder from device?!");
+    throw new Error("invalid WWW-Authenticate header from device?!");
   }
   return authParams;
 }
 
-export function shellyHttpCall(postdata: JRPCPost_t, host: string, password: string, try_authenticate: boolean = true): Promise<string> {
+export function shellyHttpCall(postdata: JRPCPost_t, host: string, password: string): Promise<string> {
   return new Promise((resolve, reject) => {
 
     const options: http.RequestOptions = {
@@ -120,21 +120,21 @@ export function shellyHttpCall(postdata: JRPCPost_t, host: string, password: str
 
       if (response.statusCode == 401) {
         // Not authenticated
-        if (!try_authenticate) {
+        if (password=='') {
           return reject(new Error("Failed to authenticate!"));
         }
         //look up the challenge header
         let authHeader = response.headers["www-authenticate"];
-        console.error("calculating digest auth from WWW-Authenticate heder:", authHeader);
+        console.error("calculating digest auth from WWW-Authenticate header:", authHeader);
         if (authHeader == undefined) {
-          return reject(new Error("WWW-Authenticate heder is missing in the response?!"));
+          return reject(new Error("WWW-Authenticate header is missing in the response?!"));
         }
         try {
           const authParams = extractAuthParams(authHeader);
           complementAuthParams(authParams, shellyHttpUsername, password);
           //Retry with challenge response object
           postdata.auth = authParams;
-          return resolve(await shellyHttpCall(postdata, host, password, false));
+          return resolve(await shellyHttpCall(postdata, host, ''));
         } catch (e) {
           if (!(e instanceof Error)) e = new Error(String(e));
           return reject(e);

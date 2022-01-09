@@ -105,8 +105,8 @@ for (; i < argl; i++) {
   }
 }
 
-if (password == '' || host == '') {
-  console.error("You need to provide atleast host and password via .env file ot envirnoment variable HOST, PASS or via parameters!");
+if ( host == '') {
+  console.error("You need to provide host via .env file or  envirnoment variable HOST or via --host parameter!");
   usage();
 }
 
