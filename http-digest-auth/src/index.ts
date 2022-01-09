@@ -113,7 +113,11 @@ if ( host == '') {
 console.error("Calling metod " + postData.method + " on " + host);
 
 shellyHttpCall(postData, host, password).then((data) => {
-  console.error("Device response: ");
+  if (postData.auth) {
+    console.error("Device response post auth: ");
+  } else {
+    console.error("Device response pre auth: ");
+  }
   try {
     if (noformat) {
       console.log(JSON.stringify(JSON.parse(data)));

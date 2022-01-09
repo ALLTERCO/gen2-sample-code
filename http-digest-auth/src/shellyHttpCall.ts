@@ -125,7 +125,6 @@ export function shellyHttpCall(postdata: JRPCPost_t, host: string, password: str
         }
         //look up the challenge header
         let authHeader = response.headers["www-authenticate"];
-        console.error("calculating digest auth from WWW-Authenticate header:", authHeader);
         if (authHeader == undefined) {
           return reject(new Error("WWW-Authenticate header is missing in the response?!"));
         }
