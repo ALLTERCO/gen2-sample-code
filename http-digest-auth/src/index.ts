@@ -7,6 +7,7 @@ dotenv.config();
 
 let password = process.env['PASS'] ?? "";
 let host = process.env['HOST'] ?? "";
+let port = Number(process.env['PORT'] ) ?? 80;
 let noformat=false;
 
 const postData: JRPCPost_t = {
@@ -21,6 +22,10 @@ function usage(): never {
   --host|-h <host>
       the host to call to, ip addres or DNS resolvable name this is also
       loaded from .env or HOST envirnoment variable
+
+  --port <port>
+      the port to use for the call, defaults to 80 also loaded from .env 
+      or HOST envirnoment variable
 
   --pass|-p <password>
       the passwod to use. Better store this in .env or pass via envirnoment
@@ -60,6 +65,12 @@ for (; i < argl; i++) {
     case "-h": {
       if (opt_arg==undefined) usage();
       host = opt_arg.trim();
+      i++;
+      continue;
+    }
+    case "--port": {
+      if (opt_arg==undefined) usage();
+      port = Number(opt_arg.trim());
       i++;
       continue;
     }
@@ -110,9 +121,14 @@ if ( host == '') {
   usage();
 }
 
+if ( isNaN(port) || port<=0 || port>65535 ) {
+  console.error("You need to provide valid port via .env file or  envirnoment variable PORT or via --port parameter!");
+  usage();
+}
+
 console.error("Calling metod " + postData.method + " on " + host);
 
-shellyHttpCall(postData, host, password).then((data) => {
+shellyHttpCall(postData, host, port, password).then((data) => {
   if (postData.auth) {
     console.error("Device response post auth: ");
   } else {

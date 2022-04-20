@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset='utf-8'>
+	<meta http-equiv='X-UA-Compatible' content='IE=edge'>
+	<title>Shelly HTTP Auth Sample</title>
+	<meta name='viewport' content='width=device-width, initial-scale=1'>
+	<link rel='stylesheet' type='text/css' media='screen' href='shelly_auth.css'>
+	<link rel="shortcut icon" href="data:image/x-icon;," type="image/x-icon"> 
+	<script>
+		let shelly_auth;
+		let loaddone=false;
+		import('./shelly_auth.js').then((mod)=>{
+			shelly_auth=mod;
+			if (loaddone) shelly_auth.init();
+		});
+	</script>
+</head>
+<body onload="loaddone=true; if (shelly_auth) shelly_auth.init()">
+	
+</body>
+</html>

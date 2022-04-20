@@ -48,16 +48,19 @@ export function isauthParams(p: any): p is authParams_t {
 }
 
 export function complementAuthParams(authParams: authParams_t, username: string, password: string) {
-
+  console.log("complementAuthParams HexHash('1234567890')=="+HexHash('1234567890'));
+  console.log("complementAuthParams initial params: "+JSON.stringify(authParams))
   authParams.username = username;
   authParams.nonce = String(parseInt(authParams.nonce, 16));
   authParams.cnonce = String(Math.floor(Math.random() * 10e8));
 
   let resp = HexHash(username + ":" + authParams.realm + ":" + password);
+  console.log("complementAuthParams resp start:"+resp);
   resp += ":" + authParams.nonce;
   resp += ":1:" + authParams.cnonce + static_noise_sha256;
 
   authParams.response = HexHash(resp);
+  console.log("complementAuthParams final params: "+JSON.stringify(authParams))
 
 };
 
@@ -101,12 +104,12 @@ export function extractAuthParams(authHeader: string): authParams_t {
   return authParams;
 }
 
-export function shellyHttpCall(postdata: JRPCPost_t, host: string, password: string): Promise<string> {
+export function shellyHttpCall(postdata: JRPCPost_t, host: string, port:number, password: string): Promise<string> {
   return new Promise((resolve, reject) => {
 
     const options: http.RequestOptions = {
       hostname: host,
-      port: 80,
+      port: port,
       path: "/rpc",
       method: "POST",
       headers: {
@@ -133,7 +136,7 @@ export function shellyHttpCall(postdata: JRPCPost_t, host: string, password: str
           complementAuthParams(authParams, shellyHttpUsername, password);
           //Retry with challenge response object
           postdata.auth = authParams;
-          return resolve(await shellyHttpCall(postdata, host, ''));
+          return resolve(await shellyHttpCall(postdata, host,port, ''));
         } catch (e) {
           if (!(e instanceof Error)) e = new Error(String(e));
           return reject(e);
