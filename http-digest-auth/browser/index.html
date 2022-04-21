@@ -8,15 +8,30 @@
 	<link rel='stylesheet' type='text/css' media='screen' href='shelly_auth.css'>
 	<link rel="shortcut icon" href="data:image/x-icon;," type="image/x-icon"> 
 	<script>
-		let shelly_auth;
+		let shelly_auth_ui;
 		let loaddone=false;
-		import('./shelly_auth.js').then((mod)=>{
-			shelly_auth=mod;
-			if (loaddone) shelly_auth.init();
+		import('./shelly_auth_ui.js').then((mod)=>{
+			shelly_auth_ui=mod;
+			if (loaddone) shelly_auth_ui.init();
 		});
 	</script>
 </head>
-<body onload="loaddone=true; if (shelly_auth) shelly_auth.init()">
-	
+<body onload="loaddone=true; if (shelly_auth_ui) shelly_auth_ui.init()">
+<h1>Shelly HTTP Auth Example</h1>
+<div class="labeled_ui">
+	<div><label for="host" class="main_ui_lbl">Host</label><input type="text" id="host" class="js_mainui"></div>
+	<div><label for="port" class="main_ui_lbl">Port</label><input type="text" id="port" class="js_mainui"></div>
+	<div><label for="password" class="main_ui_lbl">Password</label><input type="text" id="password" class="js_mainui"></div>
+	<div><label for="method" class="main_ui_lbl">Method</label><input type="text" id="method" class="js_mainui"></div>
+	<div><label for="params" class="main_ui_lbl">Params (JSON)</label><input type="text" id="params" class="js_mainui"></div>
+	<div><span class="main_ui_lbl"></span><button onclick="shelly_auth_ui.call_jrpc()">Call</button></div>
+</div>
+<hr>
+<div>
+	<div>Log:</div>
+	<div><textarea id="log" class="js_mainui" rows="30" cols="120"></textarea></div>
+	<div><button onclick="shelly_auth_ui.clearlog()">Clear</button></div>
+
+</div>
 </body>
 </html>

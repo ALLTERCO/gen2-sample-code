@@ -1,0 +1,13 @@
+h1 {
+    width: 100%;
+    text-align: center;
+}
+.main_ui_lbl {
+    width: 10em;
+    display: inline-block;
+    text-align: right;
+    padding-right: 1em;
+}
+.labeled_ui > div {
+    margin-bottom: 0.25em;
+}
