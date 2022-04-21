@@ -23,7 +23,7 @@ function ls_getItem_def(key:string,def:string):string{
 }
 
 export function addlog(msg:string){
-	mainui.log.innerText+="\r\n"+msg;
+	mainui.log.value=mainui.log.value+"\r\n"+msg;
 }
 setlog(addlog);
 

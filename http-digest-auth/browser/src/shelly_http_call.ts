@@ -55,18 +55,18 @@ export function isauthParams(p: any): p is authParams_t {
 }
 
 export function complementAuthParams(authParams: authParams_t, username: string, password: string) {
-	console.log("complementAuthParams initial params: "+JSON.stringify(authParams))
+	log("complementAuthParams initial params: "+JSON.stringify(authParams))
 	authParams.username = username;
 	authParams.nonce = String(parseInt(authParams.nonce, 16));
 	authParams.cnonce = String(Math.floor(Math.random() * 10e8));
 
 	let resp = HexHash(username + ":" + authParams.realm + ":" + password);
-	console.log("complementAuthParams resp start:"+resp);
+	log("complementAuthParams resp start:"+resp);
 	resp += ":" + authParams.nonce;
 	resp += ":1:" + authParams.cnonce + static_noise_sha256;
 
 	authParams.response = HexHash(resp);
-	console.log("complementAuthParams final params: "+JSON.stringify(authParams))
+	log("complementAuthParams final params: "+JSON.stringify(authParams))
 
 };
 
@@ -113,7 +113,39 @@ export function extractAuthParams(authHeader: string): authParams_t {
   
 export function shellyHttpCall(postdata: JRPCPost_t, host: string, port:number, password: string): Promise<string> {
 	return new Promise((resolve, reject) => {
+		let fetch_params:RequestInit={
+			method:"POST",
+			headers:{"Content-Type": "application/json"},
+			body:JSON.stringify(postdata)
+		};
 
+		const req=fetch('http://'+host+':'+port+'/rpc',fetch_params).then((response)=>{;
+			if (response.status == 401) {
+				// Not authenticated
+				if (password=='') {
+					return reject(new Error("Failed to authenticate!"));
+				}
+				//look up the challenge header
+				let authHeader = response.headers.get("www-authenticate");
+				if (authHeader == undefined) {
+					return reject(new Error("WWW-Authenticate header is missing in the response?!"));
+				}
+				try {
+					const authParams = extractAuthParams(authHeader);
+					complementAuthParams(authParams, shellyHttpUsername, password);
+					//Retry with challenge response object
+					postdata.auth = authParams;
+					return resolve(shellyHttpCall(postdata, host,port, ''));
+				} catch (e) {
+					if (!(e instanceof Error)) e = new Error(String(e));
+					return reject(e);
+				}
+			}
+			resolve(response.text());
+		}).catch((error)=>{
+			reject(new Error("Request error:" + String(error)));
+		});
+		/*
 		const options: http.RequestOptions = {
 			hostname: host,
 			port: port,
@@ -183,5 +215,6 @@ export function shellyHttpCall(postdata: JRPCPost_t, host: string, port:number, 
 
 		req.write(JSON.stringify(postdata));
 		req.end();
+	*/
 	});
 };
