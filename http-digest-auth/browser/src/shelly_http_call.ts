@@ -113,13 +113,47 @@ export function extractAuthParams(authHeader: string): authParams_t {
   
 export function shellyHttpCall(postdata: JRPCPost_t, host: string, port:number, password: string): Promise<string> {
 	return new Promise((resolve, reject) => {
-		let fetch_params:RequestInit={
-			method:"POST",
-			headers:{"Content-Type": "application/json"},
+		let fetch_params={
+			headers: [["Content-Type","application/json"]],
 			body:JSON.stringify(postdata)
 		};
 
-		const req=fetch('http://'+host+':'+port+'/rpc/'+postdata.method,fetch_params).then((response)=>{;
+
+		const req=new XMLHttpRequest();
+		req.withCredentials=true;
+		req.addEventListener("readystatechange", ()=>{
+
+			if (req.readyState==req.OPENED) {
+				console.log("ev: readystatechange  state:OPENED");
+				for (let h of fetch_params.headers) {
+					try {
+						req.setRequestHeader(h[0],h[1]);
+					} catch (err){
+						console.log("failed to set header "+h[0]+" to "+h[1]+" e:",err);
+					}
+				}
+				req.send(fetch_params.body);
+				return;
+			}
+			if(req.readyState==req.HEADERS_RECEIVED) {
+				console.log("ev: readystatechange  state:HEADERS_RECEIVED h:"+req.getAllResponseHeaders());
+				return;
+			}
+
+
+			if(req.readyState==req.DONE) {
+				console.log("ev: readystatechange  state:DONE status:"+req.status);
+				return;
+			}
+
+			console.log("ev: readystatechange  ?? state:"+req.readyState);
+
+		});
+		req.open("POST",'http://'+host+':'+port+'/rpc/'+postdata.method);
+
+		return;
+
+		const freq=fetch('http://'+host+':'+port+'/rpc/'+postdata.method,fetch_params).then((response)=>{;
 			if (response.status == 401) {
 				// Not authenticated
 				if (password=='') {
