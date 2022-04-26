@@ -119,16 +119,24 @@ export function shellyHttpCall(postdata: JRPCPost_t, host: string, port:number, 
 			body:JSON.stringify(postdata)
 		};
 
-		const req=fetch('http://'+host+':'+port+'/rpc',fetch_params).then((response)=>{;
+		const req=fetch('http://'+host+':'+port+'/rpc/'+postdata.method,fetch_params).then((response)=>{;
 			if (response.status == 401) {
 				// Not authenticated
 				if (password=='') {
 					return reject(new Error("Failed to authenticate!"));
 				}
 				//look up the challenge header
-				let authHeader = response.headers.get("www-authenticate");
+				let authHeader:string|undefined;
+				let _all_h:string[][]=[];
+				response.headers.forEach((v,k)=>{
+					_all_h.push([k,v]);
+					if(k.toLowerCase()=='www-authenticate') authHeader=v;
+				});
+
 				if (authHeader == undefined) {
-					return reject(new Error("WWW-Authenticate header is missing in the response?!"));
+					console.log("fetch fails to report www-authenticate header keys:",JSON.stringify(Array.from((<any>(response.headers)).keys())));
+					console.log("fetch fails to report www-authenticate header response:",response);
+					return reject(new Error("WWW-Authenticate header is missing in the response?! : h:"+JSON.stringify(_all_h)));
 				}
 				try {
 					const authParams = extractAuthParams(authHeader);

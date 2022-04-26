@@ -65,7 +65,7 @@ export function init (){
 }
 
 export function clearlog() {
-	mainui.log.innerText='';
+	mainui.log.value='';
 }
 
 export function call_jrpc() {
